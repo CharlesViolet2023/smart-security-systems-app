@@ -1,0 +1,47 @@
+# =============================================================================
+# SmartSec .gitignore - Files that should NOT be uploaded to GitHub
+# =============================================================================
+
+# --- Sensitive / Secret files (NEVER upload these!) ---
+.env                              # Contains passwords, API keys, config secrets
+firebase-service-account.json     # Firebase private key - anyone with this can send notifications
+smartsec_app/android/app/google-services.json  # Firebase config for Android app
+
+# --- Database files ---
+*.db                              # SQLite database files (contain event logs)
+
+# --- Python ---
+__pycache__/                      # Compiled Python files (auto-generated)
+*.pyc                             # Compiled Python files
+*.pyo
+*.egg-info/
+dist/
+venv/
+.venv/
+
+# --- Flutter / Dart ---
+smartsec_app/.dart_tool/
+smartsec_app/.flutter-plugins-dependencies
+smartsec_app/build/
+smartsec_app/.pub-cache/
+smartsec_app/.pub/
+*.lock
+
+# --- IDE files ---
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Android build artifacts ---
+smartsec_app/android/.gradle/
+smartsec_app/android/app/debug/
+smartsec_app/android/app/profile/
+smartsec_app/android/app/release/
+smartsec_app/android/local.properties
