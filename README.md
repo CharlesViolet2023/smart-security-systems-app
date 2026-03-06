@@ -1,171 +1,155 @@
-# SmartSec - Smart Office Security System
+SmartSec Mobile App - Remote Security Monitor
+What is SmartSec App?
+SmartSec is a mobile companion app for the SmartSec Office Security System. It lets you monitor and control your office security from your Android phone. The app provides:
 
-## What is SmartSec?
+Live Dashboard – See real-time system status, today's activity stats, and the most recent security event.
 
-SmartSec is a **complete office security system** built with a Raspberry Pi and a mobile phone app. It protects an office by:
+Complete Event Log – Browse a searchable, filterable history of all security events (door openings, intruder alerts, motion detections, unauthorized attempts).
 
-- **Controlling door access** with RFID cards (like a key card for a building)
-- **Detecting intruders** with an infrared (IR) sensor
-- **Detecting motion** with a PIR (passive infrared) sensor
-- **Sending instant alerts** to your phone when something happens
-- **Keeping a log** of every security event (who entered, when, any alerts)
+Push Notifications – Receive instant alerts on your phone whenever an important security event occurs (door opened, intruder detected, unauthorized access).
 
-The system has two main parts:
+Simple Setup – Enter your Raspberry Pi's IP address once, and the app remembers it.
 
-1. **The Raspberry Pi** (the brain) - runs Python code that reads sensors, controls the door lock (servo motor), displays messages on an LCD screen, and stores all events in a database.
-2. **The Android App** (the remote monitor) - built with Flutter, it connects to the Raspberry Pi over Wi-Fi to show you a live dashboard, the full event log, and sends push notifications to your phone.
+The app is built with Flutter, so it's fast, modern, and works smoothly on Android devices.
 
----
+How It Works (Simple Overview)
+text
+[SmartSec System on Raspberry Pi] <--(Wi-Fi/REST API)--> [SmartSec Android App]
+         (Flask Server)                                     (Flutter App)
+               |                                                     |
+         [SQLite Database]                                     [Local Storage]
+               |                                                     |
+         [Hardware Sensors]                                   [Firebase Cloud]
+               |                                                     |
+         [Physical Security]                                  [Push Notifications]
+The Raspberry Pi runs a small web server (Flask) that provides a REST API.
 
-## How It Works (Simple Overview)
+The mobile app connects to this API over your local Wi-Fi network.
 
-```
-[RFID Card Reader] ---\
-[IR Sensor]        ----\
-[PIR Motion Sensor] -----> [Raspberry Pi] ----> [Database (SQLite)]
-[LCD Display]      <----/                  \---> [Flask API Server]
-[Servo Motor/Door] <---/                          |
-[Buzzer + LEDs]    <--/                           v
-                                           [Android App on Phone]
-                                                  |
-                                           [Push Notifications via Firebase]
-```
+The app fetches live status, event logs, and statistics from the Pi.
 
-1. Someone scans their RFID card at the door.
-2. The Raspberry Pi checks if the card is authorized.
-3. If YES: the green LED turns on, the LCD says "Access Granted", and the servo motor opens the door. A notification is sent to your phone.
-4. If NO: the red LED turns on, the LCD says "Incorrect Card", and an "unauthorized access" alert is sent to your phone.
-5. If the IR sensor detects someone passing through (possible intruder), the buzzer sounds and an intruder alert is sent.
-6. All events are saved to a database and can be viewed in the mobile app.
+When a security event occurs, the Pi sends a push notification via Firebase Cloud Messaging (FCM) to all subscribed devices.
 
----
+Your phone displays the notification, even when the app is closed.
 
-## Project Files Explained
+App Features
+📊 Dashboard Screen
+System Status – Shows if the Raspberry Pi is online.
 
-### Python Files (run on the Raspberry Pi)
+Today's Summary – Displays counts of entries, intruder alerts, motion events, and unauthorized attempts.
 
-| File | What it does |
-|------|-------------|
-| `main.py` | **The starting point.** When you run `sudo python3 main.py`, it sets everything up: loads settings, creates the database, starts the web server, and launches the security system. |
-| `Smart security system4.py` | **The hardware controller.** This is the core file that talks to all the physical components: reads RFID cards, checks sensors, controls the door motor, turns LEDs on/off, sounds the buzzer, and writes messages to the LCD screen. |
-| `api_server.py` | **The web server.** Creates a small web server (using Flask) that the mobile app connects to. It provides URLs (called "endpoints") where the app can request data like "give me today's events" or "what's the system status". |
-| `notifications.py` | **The notification sender.** Sends push notifications to the Android app through Firebase Cloud Messaging (FCM). When something happens (door opens, intruder detected), this file sends an alert to your phone. |
-| `database.py` | **The database manager.** Handles storing and retrieving security events in a SQLite database file. Every time something happens, it gets saved here. *(Note: this file is imported by other files but may need to be created.)* |
-| `requirements.txt` | **The shopping list for Python.** Lists all the extra Python packages (libraries) that need to be installed for the system to work. |
-| `.env` | **The settings file.** Contains configuration values like the database file path, the server port number, and Firebase credentials location. Think of it as the system's settings menu. |
-| `firebase-service-account.json` | **The Firebase key.** A secret key file that allows the Raspberry Pi to send push notifications through Google's Firebase service. You download this from the Firebase website. |
+Latest Event – Highlights the most recent security event with details.
 
-### Flutter/Dart Files (the Android mobile app)
+Recent Activity – Lists the last few events for quick viewing.
 
-These files are inside the `smartsec_app/` folder.
+📜 Log Screen
+Complete History – Scroll through every security event ever recorded.
 
-| File | What it does |
-|------|-------------|
-| `lib/main.dart` | **The app's starting point.** Sets up Firebase, initializes notifications, creates the app's visual theme (colors, fonts), and builds the main navigation with 3 tabs: Dashboard, Access Log, and Settings. |
-| `lib/screens/dashboard_screen.dart` | **The home screen.** Shows a live overview: whether the system is online, today's statistics (how many entries, alerts, motion events), the last event that happened, and a list of recent activity. |
-| `lib/screens/log_screen.dart` | **The history screen.** Shows a scrollable list of ALL security events with filters. You can filter by type (door opened, intruder, unauthorized, motion). It loads more events as you scroll down (infinite scroll). |
-| `lib/screens/settings_screen.dart` | **The settings screen.** Lets you enter the Raspberry Pi's IP address so the app knows where to connect. Has a "Test Connection" button and a setup guide. |
-| `lib/models/event.dart` | **The event data model.** Defines what a "security event" looks like in the app: it has an ID, timestamp, event type, card ID, person name, and details. Also has helper functions to display the right icon and label for each event type. |
-| `lib/services/api_service.dart` | **The API communicator.** Handles all communication between the app and the Raspberry Pi's web server. It fetches events, stats, and system status. It saves the Pi's IP address so you don't have to re-enter it every time. |
-| `lib/services/notification_service.dart` | **The notification handler.** Sets up the app to receive push notifications from Firebase. Asks for permission, subscribes to the security topic, and shows notifications on the phone even when the app is open. |
-| `pubspec.yaml` | **The app's shopping list.** Lists all the packages (libraries) the Flutter app needs: HTTP for web requests, Firebase for notifications, Provider for state management, etc. |
+Filter by Type – Tap filter buttons to see only specific event types (door openings, intruder, unauthorized, motion).
 
-### Android Configuration Files
+Infinite Scroll – Events load automatically as you scroll down.
 
-| File | What it does |
-|------|-------------|
-| `android/app/google-services.json` | Firebase configuration file for the Android app. Downloaded from the Firebase Console. |
-| `android/app/build.gradle.kts` | Android build configuration. Specifies the app's package name (`com.smartsec.smartsec_app`), Android SDK version, and dependencies like Firebase. |
+Event Details – Each entry shows time, event type, person name (if known), and card ID.
 
----
+⚙️ Settings Screen
+Pi IP Address – Enter the IP address of your Raspberry Pi (the app saves it securely).
 
-## Hardware Components Needed
+Test Connection – Verify that the app can reach the Pi.
 
-| Component | What it does in the system |
-|-----------|---------------------------|
-| **Raspberry Pi** | The main computer that runs everything |
-| **MFRC522 RFID Reader** | Reads RFID key cards to identify who's at the door |
-| **RFID Cards/Tags** | The key cards that people carry to open the door |
-| **Servo Motor (SG90)** | Acts as the door lock mechanism - rotates to open/close |
-| **IR Sensor** | Infrared sensor that detects if someone passes through (intruder detection) |
-| **PIR Sensor** | Passive infrared sensor that detects motion nearby |
-| **LCD Display (20x4, I2C)** | Shows messages like "Scan your card...", "Access Granted", "Intruder!" |
-| **Green LED** | Lights up when access is granted (door opening) |
-| **Red LED** | Lights up when access is denied or an alert triggers |
-| **Buzzer** | Makes a sound when an intruder or motion is detected |
+Setup Guide – Quick instructions for first-time users.
 
-### GPIO Pin Assignments
+🔔 Push Notifications
+Instant alerts for:
 
-| Component | GPIO Pin (BCM) |
-|-----------|---------------|
-| Green LED | GPIO 24 |
-| Red LED | GPIO 16 |
-| PIR Sensor | GPIO 5 |
-| Servo Motor | GPIO 6 |
-| IR Sensor | GPIO 17 |
-| Buzzer | GPIO 27 |
-| RFID Reader | SPI (default pins) |
-| LCD Display | I2C (address 0x27) |
+Door Opened (with person's name)
 
----
+Intruder Detected
 
-## How to Set Up
+Unauthorized Access Attempt
 
-### Step 1: Set up the Raspberry Pi
+Motion Detected
 
-1. Install Python 3 on your Raspberry Pi (usually pre-installed).
-2. Copy all the Python files to a folder on the Pi.
-3. Install the required Python packages:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Wire up all the hardware components to the GPIO pins listed above.
+Notifications work even when the app is in the background.
 
-### Step 2: Set up Firebase (for push notifications)
+App Files Explained
+All app files are inside the smartsec_app/ folder.
 
-1. Go to [Firebase Console](https://console.firebase.google.com/) and create a new project.
-2. Enable **Cloud Messaging (FCM)** in the project settings.
-3. Download the **service account key** (a JSON file) and save it as `firebase-service-account.json` in the SmartSec folder on the Pi.
-4. Add an Android app to your Firebase project and download `google-services.json` into the `smartsec_app/android/app/` folder.
+File	What it does
+lib/main.dart	App entry point. Initializes Firebase, sets up the app theme (colors, fonts), and creates the main bottom navigation bar with three tabs (Dashboard, Log, Settings).
+lib/screens/dashboard_screen.dart	Dashboard UI. Displays system status, today's stats, and recent events. Periodically refreshes data from the Pi.
+lib/screens/log_screen.dart	Event log UI. Shows a paginated list of events with filter buttons. Loads more events as the user scrolls.
+lib/screens/settings_screen.dart	Settings UI. Lets the user input and save the Pi's IP address, test the connection, and view setup help.
+lib/models/event.dart	Data model for security events. Defines an Event class with fields like id, timestamp, type, cardId, personName, and details. Includes helper methods to get display text and icons for each event type.
+lib/services/api_service.dart	Handles all communication with the Raspberry Pi's REST API. Fetches events, stats, and system status. Saves the Pi's IP address using shared preferences.
+lib/services/notification_service.dart	Manages push notifications. Requests permissions, subscribes to the FCM topic (office_security), and handles incoming notifications (shows them as popups or in the notification tray).
+pubspec.yaml	Project dependencies. Lists all Flutter packages used: http for API calls, firebase_messaging for push, provider for state management, shared_preferences for storing settings, etc.
+Android-Specific Files
+File	What it does
+android/app/google-services.json	Firebase configuration file for the Android app. Downloaded from the Firebase Console. It enables push notifications.
+android/app/build.gradle.kts	Android build configuration. Specifies the app's package name (com.smartsec.smartsec_app), SDK versions, and includes the Firebase plugins.
+How to Build and Install the App
+Prerequisites
+Flutter SDK installed on your computer.
 
-### Step 3: Configure the system
+An Android device (or emulator) running Android 5.0 (API 21) or newer.
 
-Edit the `.env` file to adjust settings if needed:
-- `FIREBASE_CREDENTIALS_PATH` - path to your Firebase key file
-- `FCM_TOPIC` - the notification topic (default: `office_security`)
-- `DATABASE_PATH` - where to store the event database (default: `./security.db`)
-- `API_PORT` - the web server port (default: `5000`)
+A Firebase project with Cloud Messaging enabled (for push notifications).
 
-### Step 4: Run the security system
+Steps
+Clone or download the project files.
 
-```bash
-sudo python3 main.py
-```
+Place Firebase config – Copy the google-services.json file from your Firebase project into smartsec_app/android/app/.
 
-This needs `sudo` because accessing the Raspberry Pi's GPIO pins requires administrator permissions.
+Open a terminal in the smartsec_app/ folder.
 
-### Step 5: Build and install the mobile app
+Get dependencies:
 
-1. Install [Flutter](https://flutter.dev/docs/get-started/install) on your computer.
-2. Navigate to the `smartsec_app/` folder.
-3. Run:
-   ```bash
-   flutter pub get
-   flutter build apk
-   ```
-4. Install the APK on your Android phone.
-5. Open the app, go to Settings, enter your Raspberry Pi's IP address, and test the connection.
+bash
+flutter pub get
+Build the APK:
 
----
+bash
+flutter build apk --release
+Install the generated APK (found at build/app/outputs/flutter-apk/app-release.apk) on your Android phone.
 
-## API Endpoints (for developers)
+First-Time Setup
+Open the app on your phone.
 
-The Flask server provides these URLs for the mobile app to fetch data:
+Go to the Settings tab.
 
-| Endpoint | What it returns |
-|----------|----------------|
-| `GET /api/health` | Simple check to see if the server is running |
-| `GET /api/status` | System status: online/offline, last event, today's stats |
-| `GET /api/events` | List of security events (supports pagination with `limit` and `offset`, and filtering with `type`) |
-| `GET /api/events/today` | All events from today only |
-| `GET /api/stats/today` | Count of each event type for today |
+Enter the IP address of your Raspberry Pi (e.g., 192.168.1.100).
+
+Tap Test Connection – you should see a success message.
+
+The app is now ready. Grant notification permission when prompted.
+
+API Endpoints (Used by the App)
+The app communicates with the Raspberry Pi's Flask server via these REST endpoints:
+
+Endpoint	Purpose
+GET /api/health	Check if the server is reachable.
+GET /api/status	Get current system status (online, last event, today's stats).
+GET /api/events	Fetch paginated list of events (supports limit, offset, and type filters).
+GET /api/stats/today	Get counts for today's events by type.
+All responses are in JSON format. The app handles parsing and displaying this data.
+
+Push Notification Setup (Firebase)
+To receive push notifications:
+
+The Raspberry Pi sends notifications using a service account key (JSON file) configured on the Pi.
+
+The Android app includes the google-services.json file and uses the firebase_messaging package to listen for messages.
+
+When the app starts, it subscribes to the FCM topic office_security (or whatever topic is set in the Pi's .env file).
+
+Any notification sent to that topic is delivered to all devices running the app.
+
+Troubleshooting
+Cannot connect to Pi – Make sure your phone is on the same Wi-Fi network as the Raspberry Pi. Verify the IP address is correct and that the Pi's Flask server is running (you can test by visiting http://<pi-ip>:5000/api/health in a browser).
+
+No push notifications – Check that the Firebase service account JSON is correctly placed on the Pi and that the app's google-services.json is correct. Also ensure your phone has internet access.
+
+App crashes on start – Make sure you've run flutter pub get and that all dependencies are correctly installed.
+
+SmartSec Mobile App – Stay connected to your office security, anywhere.
+
