@@ -60,5 +60,5 @@ print("=" * 50)
 # We use "exec" to run the security script in the current context.
 # This way, the security system has access to all the settings and modules
 # that were loaded above.
-security_script = os.path.join(os.path.dirname(__file__), "Smart security system4.py")
+security_script = os.path.join(os.path.dirname(__file__), "your script here")
 exec(open(security_script).read())
